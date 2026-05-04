@@ -467,22 +467,21 @@
     showTyping();
 
     try {
-      const targetUrl = `${WEBHOOK_URL}?${MSG_PARAM}=${encodeURIComponent(text)}`;
-      const proxyUrl  = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl);
+      const url = `${WEBHOOK_URL}?${MSG_PARAM}=${encodeURIComponent(text)}`;
+      const res = await fetch(url, { mode: 'cors' });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const outer = await res.json();
+      const ct = res.headers.get('content-type') || '';
       let reply = '';
 
-      try {
-        const data = JSON.parse(outer.contents);
+      if (ct.includes('application/json')) {
+        const data = await res.json();
         reply = typeof data === 'string'
           ? data
-          : (data[REPLY_KEY] ?? data.text ?? data.reply ?? data.output ?? JSON.stringify(data));
-      } catch {
-        reply = outer.contents;
+          : (data[REPLY_KEY] ?? data.reply ?? data.text ?? data.output ?? JSON.stringify(data));
+      } else {
+        reply = await res.text();
       }
 
       hideTyping();
