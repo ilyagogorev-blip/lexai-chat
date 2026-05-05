@@ -472,16 +472,20 @@
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const ct = res.headers.get('content-type') || '';
+      const raw = await res.text();
       let reply = '';
 
-      if (ct.includes('application/json')) {
-        const data = await res.json();
-        reply = typeof data === 'string'
-          ? data
-          : (data[REPLY_KEY] ?? data.reply ?? data.text ?? data.output ?? JSON.stringify(data));
+      if (!raw || raw.trim() === '') {
+        reply = '(пустой ответ от сервера)';
       } else {
-        reply = await res.text();
+        try {
+          const data = JSON.parse(raw);
+          reply = typeof data === 'string'
+            ? data
+            : (data[REPLY_KEY] ?? data.reply ?? data.text ?? data.output ?? JSON.stringify(data));
+        } catch {
+          reply = raw;
+        }
       }
 
       hideTyping();
